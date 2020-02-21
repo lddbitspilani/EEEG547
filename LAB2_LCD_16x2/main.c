@@ -20,6 +20,8 @@
 
 #define CLR_LCD 0
 #define SETUP_LCD 1
+#define LSHFT_LCD 5
+#define RSHFT_LCD 3
 
 #define OUT_MODE 0
 #define IN_MODE 1
@@ -101,7 +103,7 @@ static uint32_t* clr_reg;
 		
 	}
 	
-	void msleep(uint32_t time)
+	void delay(uint32_t time)
 	{
 		int c = jiffies;
 		while(jiffies<(c+time));
@@ -111,20 +113,22 @@ static uint32_t* clr_reg;
 	void Lcd_CmdWrite(uint8_t cmd)
 	{
 		// LcdDataBus = (cmd & 0xF0);     //Send higher nibble
-		msleep(4);
+		msleep(1);
 		write_to_databus(cmd >> 4);
 		// LCD_RS = 0;   // Send LOW -pulse on RS pin for selecting Command register
 		write_to_pin(LCD_RS,0);
 		// LCD_RW = 0;   // Send LOW pulse on RW pin for Write operation
 		// LCD_EN = 1;   // Generate a High-to-low pulse on EN pin
+		write_to_pin(LCD_EN,0);
+		udelay(10);
 		write_to_pin(LCD_EN,1);
 		// msleep(1000);
-		msleep(1);
+		udelay(10);
 		// LCD_EN = 0;
 		write_to_pin(LCD_EN,0);
 
 		// msleep(10000);
-		msleep(4);
+		udelay(100);
 
 		// LcdDataBus = ((cmd<<4) & 0xF0); //Send Lower nibble
 		write_to_databus((cmd & 0x0F));
@@ -132,33 +136,37 @@ static uint32_t* clr_reg;
 		write_to_pin(LCD_RS,0);
 		// LCD_RW = 0;   // Send LOW pulse on RW pin for Write operation
 		// LCD_EN = 1;   // Generate a High-to-low pulse on EN pin
+		write_to_pin(LCD_EN,0);
+		udelay(10);
 		write_to_pin(LCD_EN,1);
 		// msleep(1000);
-		msleep(1);
+		udelay(10);
 		// LCD_EN = 0;
 		write_to_pin(LCD_EN,0);		
 
 		// msleep(10000);
-		msleep(4);
+		// msleep(1);
 	}
 	
 		void Lcd_DataWrite(uint8_t cmd)
 	{
 		// LcdDataBus = (cmd & 0xF0);     //Send higher nibble
-		msleep(4);
+		msleep(1);
 		write_to_databus(cmd >> 4);
 		// LCD_RS = 0;   // Send HIGH -pulse on RS pin for selecting DATA register
 		write_to_pin(LCD_RS,1);
 		// LCD_RW = 0;   // Send LOW pulse on RW pin for Write operation
 		// LCD_EN = 1;   // Generate a High-to-low pulse on EN pin
+		write_to_pin(LCD_EN,0);
+		udelay(10);
 		write_to_pin(LCD_EN,1);
 		// msleep(1000);
-		msleep(1);
+		udelay(10);
 		// LCD_EN = 0;
 		write_to_pin(LCD_EN,0);
 
 		// msleep(10000);
-		msleep(2);
+		udelay(100);
 
 		// LcdDataBus = ((cmd<<4) & 0xF0); //Send Lower nibble
 		write_to_databus((cmd & 0x0F));
@@ -166,14 +174,16 @@ static uint32_t* clr_reg;
 		write_to_pin(LCD_RS,1);
 		// LCD_RW = 0;   // Send LOW pulse on RW pin for Write operation
 		// LCD_EN = 1;   // Generate a High-to-low pulse on EN pin
+		write_to_pin(LCD_EN,0);
+		udelay(10);
 		write_to_pin(LCD_EN,1);
 		// msleep(1000);
-		msleep(1);
+		udelay(10);
 		// LCD_EN = 0;
 		write_to_pin(LCD_EN,0);		
 
 		// msleep(10000);
-		msleep(4);
+		// msleep(1);
 	}
 
 	static int my_open(struct inode *i, struct file *f)
@@ -226,69 +236,111 @@ static uint32_t* clr_reg;
 		// Lcd_CmdWrite(0xC0);        // Move the cursor to beginning of second line
 		for(i=0;i<16;i++)
 			{
-				if (Message[i+1]!=0&&flag)
+				if (Message[i]!=0&&flag)
 				Lcd_DataWrite(Message[i]);
 				else
 				{flag = 0;
-				Lcd_DataWrite(' ');}
-			}
-		Lcd_CmdWrite(0xC0);        // Move the cursor to beginning of second line
-		for(i=16;i<33;i++)
-			{
-				if (Message[i+1]!=0&&flag)
-				Lcd_DataWrite(Message[i]);
-				else
-				{
-					if(i==31&&flag)
-					Lcd_DataWrite(Message[i]);
-				
-					flag=0;
-					Lcd_DataWrite(' ');
+				// Lcd_DataWrite(' ');
 				}
 			}
 		
-
+		if(flag)
+		{
+			Lcd_CmdWrite(0xC0);        // Move the cursor to beginning of second line	
+			for(i=16;i<33;i++)
+				{
+					if (Message[i]!=0&&flag)
+					Lcd_DataWrite(Message[i]);
+					else
+					{
+						// if(i==31&&flag)
+						// Lcd_DataWrite(Message[i]);
+					
+						flag=0;
+						// Lcd_DataWrite(' ');
+					}
+				}
+		}
+		// Lcd_CmdWrite(0x80);
 		return i;
 	}
 	
 	long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
 	{
 		int i;
-		char *temp;
+		// char *temp;
 
-		char message1[80];
+		// char message1[80];
 		
-		temp = (char *)ioctl_param;
+		// temp = (char *)ioctl_param;
 
 
 		 
-		for (i = 0; i < BUF_LEN; i++)
-			get_user(message1[i], temp + i);
+		// for (i = 0; i < BUF_LEN; i++)
+			// get_user(message1[i], temp + i);
 		 
-		printk(KERN_INFO "IOCTL CALL: %d\nPARAM: %s",ioctl_num,message1);
+		printk(KERN_INFO "IOCTL CALL: %d\nPARAM: %d",ioctl_num,ioctl_param);
 
 
 		switch (ioctl_num) {
 			case CLR_LCD:		
 	
 				Lcd_CmdWrite(0x01);        // Clear Display
-				msleep(1);
+				// msleep(1);
 				Lcd_CmdWrite(0x80);        // Move the cursor to beginning of first line
-				msleep(1);
+				// msleep(1);
 
 				 break;
 				 
 			case SETUP_LCD:
-				Lcd_CmdWrite(0x02);        // Initialize Lcd in 4-bit mode
-				msleep(5);
-				Lcd_CmdWrite(0x28);        // enable 5x7 mode for chars 
-				msleep(5);
-				Lcd_CmdWrite(0x0E);        // Display OFF, Cursor ON
-				msleep(5);
-				Lcd_CmdWrite(0x01);        // Clear Display
-				msleep(5);
+				Lcd_CmdWrite(0x33);        // Initialize Lcd in 4-bit mode
+				// msleep(5);
+				Lcd_CmdWrite(0x32);        // enable 5x7 mode for chars 
+				// msleep(5);
+				Lcd_CmdWrite(0x28);        // Function set
+				// msleep(5);
+				Lcd_CmdWrite(0x08);        // Display OFF, Cursor ON
+				// msleep(5);				
+				Lcd_CmdWrite(0x01);        // Move the cursor to beginning of first line	
+				// msleep(5);
+				Lcd_CmdWrite(0x06);        // Move the cursor to beginning of first line	
+				// msleep(5);
+				Lcd_CmdWrite(0x0C);        // Move the cursor to beginning of first line	
+				// msleep(5);
 				Lcd_CmdWrite(0x80);        // Move the cursor to beginning of first line	
-				msleep(5);
+				// msleep(5);
+				
+			
+				break;
+				
+			
+				 
+			case RSHFT_LCD:	
+
+				
+				for(i=0;i<ioctl_param;i++)
+				Lcd_CmdWrite(0x14);
+
+				break;
+				 
+			case LSHFT_LCD:	
+
+				
+				for(i=0;i<ioctl_param;i++)
+				Lcd_CmdWrite(0x10);
+
+				break;
+				
+			case 7:					
+				
+				Lcd_CmdWrite(ioctl_param);
+
+				break;
+				 
+			default: 
+				printk(KERN_INFO "INVALID IOCTL CALL");
+				break;
+			
 
 			}
 
