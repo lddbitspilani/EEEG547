@@ -12,7 +12,7 @@
 	#include <linux/uaccess.h>
 	#include <asm/io.h>
 	
-	#define PERF_BASE 0x3F000000
+	#define PERF_BASE 0xFE000000
 	#define GPIO_BASE (PERF_BASE + 0x200000)
 
 
